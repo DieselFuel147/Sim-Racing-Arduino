@@ -4,7 +4,7 @@
 
 The [Sim Racing Library](https://github.com/dmadison/Sim-Racing-Arduino/) is an Arduino library for interfacing sim racing equipment such as pedals and gear shifters with Arduino development boards.
 
-Added example code for combined shifter and pedals setup.
+Includes example code for combined shifter and pedals setup.
 
 ## Getting Started
 
