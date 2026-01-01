@@ -1528,17 +1528,16 @@ void LogitechShifterG25::setCalibrationSequential(int neutral, int up, int down,
 
 	// if up/down calibration points are reversed, swap them
 	//
-	// in v2 of the library, pushing the shifter was 'shift up' and pulling the
-	// shifter was 'shift down'
+	// in the original public release, pushing the shifter was 'shift up'
+	// and pulling the shifter was 'shift down'
 	//
-	// in v3 of the library this was fixed, so that pushing the shifter is
-	// 'shift down' and pulling the shifter is 'shift up', matching the
-	// markings on the shifter itself (or mine, at least). this also matches
-	// the behavior of a sequential shift lever in a real rally car
+	// this bug was eventually fixed, so that now pushing the shifter is
+	// 'shift down' and pulling the shifter is 'shift up'. This matches the
+	// markings on the shifter itself (or mine, at least), and mirrors the
+	// behavior of a sequential shift lever in a real rally car.
 	//
 	// by swapping the calibration points here, the function maintains
-	// compatibility with calibration lines written for both version of
-	// the library
+	// compatibility with calibration lines written for both versions
 	if(up > down) {
 		int temp = up;
 		up = down;  // dogs and cats living together, mass hysteria
