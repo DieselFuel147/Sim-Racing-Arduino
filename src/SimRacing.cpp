@@ -1601,8 +1601,8 @@ void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
 
 	const uint8_t NumPoints = 3;
 	const char* directions[2][2] = {
-		{ "towards you", "up" },
-		{ "away from you", "down" },
+		{ "pull", "towards you" },
+		{ "push", "away from you" },
 	};
 	int data[NumPoints];
 
@@ -1615,9 +1615,9 @@ void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
 			iface.print(F("Leave the gear shifter in neutral"));
 		}
 		else {
-			iface.print(F("Please move the gear shifter "));
+			iface.print(F("Please "));
 			iface.print(directions[i - 1][0]);
-			iface.print(F(" to sequentially shift "));
+			iface.print(F(" the gear shifter "));
 			iface.print(directions[i - 1][1]);
 			iface.print(F(" and hold it there"));
 		}
