@@ -1103,7 +1103,7 @@ void AnalogShifter::serialCalibration(Stream& iface) {
 	iface.println(separator);
 	iface.println();
 
-	iface.print(F("shifter.setCalibration( "));
+	iface.print(F("shifter.setCalibration("));
 
 	for (int i = 0; i < 7; i++) {
 		iface.print('{');
@@ -1665,7 +1665,7 @@ void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
 	iface.println(separator);
 	iface.println();
 
-	iface.print(F("shifter.setCalibrationSequential( "));
+	iface.print(F("shifter.setCalibrationSequential("));
 
 	iface.print(neutral);
 	iface.print(", ");
