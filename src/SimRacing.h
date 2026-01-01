@@ -1154,18 +1154,24 @@ namespace SimRacing {
 		bool inSequentialMode() const;
 
 		/**
-		* Check if the sequential shifter is shifted up
+		* Check if the sequential shifter is in the shift up position
+		*
+		* When in sequential mode, the shifter is considered to be in the
+		* "shift up" position when it is pulled towards the user.
 		* 
-		* @returns 'true' if the sequential shifter is shifted up,
-		*          'false' otherwise
+		* @returns 'true' if the sequential shifter is in the shift up
+		*          position, 'false' otherwise
 		*/
 		bool getShiftUp() const;
 
 		/**
-		* Check if the sequential shifter is shifted down
+		* Check if the sequential shifter is in the shift down position
 		*
-		* @returns 'true' if the sequential shifter is shifted down,
-		*          'false' otherwise
+		* When in sequential mode, the shifter is considered to be in the
+		* "shift down" position when it is pushed away from the user.
+		*
+		* @returns 'true' if the sequential shifter is in the shift down
+		*          position, 'false' otherwise
 		*/
 		bool getShiftDown() const;
 
