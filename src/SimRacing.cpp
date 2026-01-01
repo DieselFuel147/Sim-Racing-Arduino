@@ -1421,7 +1421,7 @@ LogitechShifterG25::LogitechShifterG25(
 {
 	// using the calibration values from my own G25 shifter
 	this->setCalibration({ 508, 435 }, { 310, 843 }, { 303, 8 }, { 516, 827 }, { 540, 14 }, { 713, 846 }, { 704, 17 });
-	this->setCalibrationSequential(425, 619, 257);
+	this->setCalibrationSequential(425, 257, 619);
 }
 
 void LogitechShifterG25::begin() {
@@ -1463,17 +1463,17 @@ bool LogitechShifterG25::updateState(bool connected) {
 
 		// if we're neutral, check for up/down shift
 		if (this->sequentialState == 0) {
-			     if (y >= this->seqCalibration.upTrigger)   this->sequentialState =  1;
-			else if (y <= this->seqCalibration.downTrigger) this->sequentialState = -1;
+			     if (y <= this->seqCalibration.upTrigger)   this->sequentialState =  1;
+			else if (y >= this->seqCalibration.downTrigger) this->sequentialState = -1;
 		}
 
 		// if we're in up-shift mode, check for release
-		else if ((this->sequentialState == 1) && (y < this->seqCalibration.upRelease)) {
+		else if ((this->sequentialState == 1) && (y > this->seqCalibration.upRelease)) {
 			this->sequentialState = 0;
 		}
 
 		// if we're in down-shift mode, check for release
-		else if ((this->sequentialState == -1) && (y > this->seqCalibration.downRelease)) {
+		else if ((this->sequentialState == -1) && (y < this->seqCalibration.downRelease)) {
 			this->sequentialState = 0;
 		}
 
@@ -1526,16 +1526,35 @@ void LogitechShifterG25::setCalibrationSequential(int neutral, int up, int down,
 		releasePoint = engagePoint;
 	}
 
+	// if up/down calibration points are reversed, swap them
+	//
+	// in v2 of the library, pushing the shifter was 'shift up' and pulling the
+	// shifter was 'shift down'
+	//
+	// in v3 of the library this was fixed, so that pushing the shifter is
+	// 'shift down' and pulling the shifter is 'shift up', matching the
+	// markings on the shifter itself (or mine, at least). this also matches
+	// the behavior of a sequential shift lever in a real rally car
+	//
+	// by swapping the calibration points here, the function maintains
+	// compatibility with calibration lines written for both version of
+	// the library
+	if(up > down) {
+		int temp = up;
+		up = down;  // dogs and cats living together, mass hysteria
+		down = temp;
+	}
+
 	// calculate ranges
-	const int upRange   = up - neutral;
-	const int downRange = neutral - down;
+	const int upRange   = neutral - up;
+	const int downRange = down - neutral;
 
 	// calculate calibration points
-	this->seqCalibration.upTrigger   = neutral + (upRange * engagePoint);
-	this->seqCalibration.upRelease   = neutral + (upRange * releasePoint);
+	this->seqCalibration.upTrigger   = neutral - (upRange * engagePoint);
+	this->seqCalibration.upRelease   = neutral - (upRange * releasePoint);
 
-	this->seqCalibration.downTrigger = neutral - (downRange * engagePoint);
-	this->seqCalibration.downRelease = neutral - (downRange * releasePoint);
+	this->seqCalibration.downTrigger = neutral + (downRange * engagePoint);
+	this->seqCalibration.downRelease = neutral + (downRange * releasePoint);
 }
 
 void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
@@ -1582,14 +1601,14 @@ void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
 
 	const uint8_t NumPoints = 3;
 	const char* directions[2][2] = {
-		{ "away from you", "up" },
-		{ "towards you", "down" },
+		{ "towards you", "up" },
+		{ "away from you", "down" },
 	};
 	int data[NumPoints];
 
 	int& neutral = data[0];
-	int& yMax    = data[1];
-	int& yMin    = data[2];
+	int& yMin    = data[1];
+	int& yMax    = data[2];
 
 	for (uint8_t i = 0; i < NumPoints; ++i) {
 		if (i == 0) {
@@ -1635,7 +1654,7 @@ void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
 	flushClient(iface);
 
 	// apply and print
-	this->setCalibrationSequential(neutral, yMax, yMin, engagementPoint, releasePoint);
+	this->setCalibrationSequential(neutral, yMin, yMax, engagementPoint, releasePoint);
 
 	iface.println(F("Here is your calibration:"));
 	iface.println(separator);
@@ -1645,9 +1664,9 @@ void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
 
 	iface.print(neutral);
 	iface.print(", ");
-	iface.print(yMax);
-	iface.print(", ");
 	iface.print(yMin);
+	iface.print(", ");
+	iface.print(yMax);
 	iface.print(", ");
 
 	iface.print(engagementPoint);
