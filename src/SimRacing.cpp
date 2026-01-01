@@ -1626,7 +1626,12 @@ void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
 
 		this->update();
 		data[i] = this->getPositionRaw(Axis::Y);
-		iface.println();  // spacing
+
+		iface.print(F("Shifter position recorded as "));
+		iface.print('\'');
+		iface.print(data[i]);
+		iface.print('\'');
+		iface.println('\n');  // spacing
 	}
 
 	iface.println(F("These settings are optional. Send 'y' to customize. Send any other character to continue with the default values."));
