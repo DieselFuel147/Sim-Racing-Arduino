@@ -1103,7 +1103,7 @@ void AnalogShifter::serialCalibration(Stream& iface) {
 	iface.println(separator);
 	iface.println();
 
-	iface.print(F("shifter.setCalibration( "));
+	iface.print(F("shifter.setCalibration("));
 
 	for (int i = 0; i < 7; i++) {
 		iface.print('{');
@@ -1421,7 +1421,7 @@ LogitechShifterG25::LogitechShifterG25(
 {
 	// using the calibration values from my own G25 shifter
 	this->setCalibration({ 508, 435 }, { 310, 843 }, { 303, 8 }, { 516, 827 }, { 540, 14 }, { 713, 846 }, { 704, 17 });
-	this->setCalibrationSequential(425, 619, 257);
+	this->setCalibrationSequential(425, 257, 619);
 }
 
 void LogitechShifterG25::begin() {
@@ -1463,17 +1463,17 @@ bool LogitechShifterG25::updateState(bool connected) {
 
 		// if we're neutral, check for up/down shift
 		if (this->sequentialState == 0) {
-			     if (y >= this->seqCalibration.upTrigger)   this->sequentialState =  1;
-			else if (y <= this->seqCalibration.downTrigger) this->sequentialState = -1;
+			     if (y <= this->seqCalibration.upTrigger)   this->sequentialState =  1;
+			else if (y >= this->seqCalibration.downTrigger) this->sequentialState = -1;
 		}
 
 		// if we're in up-shift mode, check for release
-		else if ((this->sequentialState == 1) && (y < this->seqCalibration.upRelease)) {
+		else if ((this->sequentialState == 1) && (y > this->seqCalibration.upRelease)) {
 			this->sequentialState = 0;
 		}
 
 		// if we're in down-shift mode, check for release
-		else if ((this->sequentialState == -1) && (y > this->seqCalibration.downRelease)) {
+		else if ((this->sequentialState == -1) && (y < this->seqCalibration.downRelease)) {
 			this->sequentialState = 0;
 		}
 
@@ -1526,16 +1526,34 @@ void LogitechShifterG25::setCalibrationSequential(int neutral, int up, int down,
 		releasePoint = engagePoint;
 	}
 
+	// if up/down calibration points are reversed, swap them
+	//
+	// in the original public release, pushing the shifter was 'shift up'
+	// and pulling the shifter was 'shift down'
+	//
+	// this bug was eventually fixed, so that now pushing the shifter is
+	// 'shift down' and pulling the shifter is 'shift up'. This matches the
+	// markings on the shifter itself (or mine, at least), and mirrors the
+	// behavior of a sequential shift lever in a real rally car.
+	//
+	// by swapping the calibration points here, the function maintains
+	// compatibility with calibration lines written for both versions
+	if(up > down) {
+		int temp = up;
+		up = down;  // dogs and cats living together, mass hysteria
+		down = temp;
+	}
+
 	// calculate ranges
-	const int upRange   = up - neutral;
-	const int downRange = neutral - down;
+	const int upRange   = neutral - up;
+	const int downRange = down - neutral;
 
 	// calculate calibration points
-	this->seqCalibration.upTrigger   = neutral + (upRange * engagePoint);
-	this->seqCalibration.upRelease   = neutral + (upRange * releasePoint);
+	this->seqCalibration.upTrigger   = neutral - (upRange * engagePoint);
+	this->seqCalibration.upRelease   = neutral - (upRange * releasePoint);
 
-	this->seqCalibration.downTrigger = neutral - (downRange * engagePoint);
-	this->seqCalibration.downRelease = neutral - (downRange * releasePoint);
+	this->seqCalibration.downTrigger = neutral + (downRange * engagePoint);
+	this->seqCalibration.downRelease = neutral + (downRange * releasePoint);
 }
 
 void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
@@ -1581,23 +1599,25 @@ void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
 	float releasePoint = LogitechShifterG25::CalReleasePoint;
 
 	const uint8_t NumPoints = 3;
-	const char* directions[2] = {
-		"up",
-		"down",
+	const char* directions[2][2] = {
+		{ "pull", "towards you" },
+		{ "push", "away from you" },
 	};
 	int data[NumPoints];
 
 	int& neutral = data[0];
-	int& yMax    = data[1];
-	int& yMin    = data[2];
+	int& yMin    = data[1];
+	int& yMax    = data[2];
 
 	for (uint8_t i = 0; i < NumPoints; ++i) {
 		if (i == 0) {
 			iface.print(F("Leave the gear shifter in neutral"));
 		}
 		else {
-			iface.print(F("Please move the gear shifter to sequentially shift "));
-			iface.print(directions[i - 1]);
+			iface.print(F("Please "));
+			iface.print(directions[i - 1][0]);
+			iface.print(F(" the gear shifter "));
+			iface.print(directions[i - 1][1]);
 			iface.print(F(" and hold it there"));
 		}
 		iface.println(F(". Send any character to continue."));
@@ -1605,7 +1625,12 @@ void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
 
 		this->update();
 		data[i] = this->getPositionRaw(Axis::Y);
-		iface.println();  // spacing
+
+		iface.print(F("Shifter position recorded as "));
+		iface.print('\'');
+		iface.print(data[i]);
+		iface.print('\'');
+		iface.println('\n');  // spacing
 	}
 
 	iface.println(F("These settings are optional. Send 'y' to customize. Send any other character to continue with the default values."));
@@ -1633,19 +1658,19 @@ void LogitechShifterG25::serialCalibrationSequential(Stream& iface) {
 	flushClient(iface);
 
 	// apply and print
-	this->setCalibrationSequential(neutral, yMax, yMin, engagementPoint, releasePoint);
+	this->setCalibrationSequential(neutral, yMin, yMax, engagementPoint, releasePoint);
 
 	iface.println(F("Here is your calibration:"));
 	iface.println(separator);
 	iface.println();
 
-	iface.print(F("shifter.setCalibrationSequential( "));
+	iface.print(F("shifter.setCalibrationSequential("));
 
 	iface.print(neutral);
 	iface.print(", ");
-	iface.print(yMax);
-	iface.print(", ");
 	iface.print(yMin);
+	iface.print(", ");
+	iface.print(yMax);
 	iface.print(", ");
 
 	iface.print(engagementPoint);
